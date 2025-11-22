@@ -1,0 +1,24 @@
+[
+    {
+        "key_words": "python developer",
+        "vacancies_total_items": 20,
+        "requirements": [
+            {
+                "name": "python",
+                "count": 16
+            },
+            {
+                "name": "django",
+                "count": 0
+            },
+            {
+                "name": "flask",
+                "count": 1
+            },
+            {
+                "name": "sqlalchemy",
+                "count": 0
+            }
+        ]
+    }
+]

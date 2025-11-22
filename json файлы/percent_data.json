@@ -1,0 +1,24 @@
+[
+    {
+        "key_words": "python developer",
+        "vacancies_total_items": 20,
+        "requirements": [
+            {
+                "name": "python",
+                "percent": 94.1
+            },
+            {
+                "name": "django",
+                "percent": 0.0
+            },
+            {
+                "name": "flask",
+                "percent": 5.9
+            },
+            {
+                "name": "sqlalchemy",
+                "percent": 0.0
+            }
+        ]
+    }
+]
