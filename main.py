@@ -1,102 +1,105 @@
-# получать необходимую информацию из hh.ru
-# используется hh API
-# на данный предусмотрен следующий функционал:
-## 1: подсчет открытых вакансий в целом
-## 2: подсчет процента, насколько часто конкретное требование требуется в вакансии
-## 3: подсчет количества упоминаний требований
-
-import pprint
-import json
+from flask import Flask, render_template, send_from_directory, request
 from hh import hhAPI
-from file_manager import fileManager
 
-# таким образом появляется api.hh.ru
+app = Flask(__name__)
 api = hhAPI()
 
-# импортируем менеджера файлов
-myFileManager = fileManager()
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-while True:
-    print('1. Подсчет вакансий')
-    print('2. Подсчет процента')
-    print('3. Подсчет упоминаний')
-    print('4. Сведения текущих параметров')
-    print('5. Обновление параметров')
-    print('6. Выход')
+@app.route('/contacts/')
+def show_contacts():
+    return render_template('contacts.html')
 
-    # выбор пользователя
-    choice = input('Выберите пункт: ')
 
-    match choice:
-        case '1':
-            print('производим подсчет вакансий суммарно...')
-            parameters = api.initialize_base_parameters()
+@app.route('/use_api/', methods=['GET', 'POST'])
+def use_api():
+    if request.method == 'GET':
+        # Показываем пустую форму без результатов
+        return render_template('hh_api.html', result=None)
+
+    elif request.method == 'POST':
+        vacancy_name = request.form.get('vacancy_text', '')
+        page_number = request.form.get('page_number', '')
+        region = request.form.get('region', '')
+        run_type = request.form.get('export_type', '')
+
+        parameters = {
+            "text": vacancy_name,
+            "page": page_number,
+            "area": region
+        }
+
+        result = None
+
+        if run_type == 'vacancy_count':
             request_json = api.request_get_json(parameters)
-            vacancy_counter = api.count_vacancies(request_json)
-            pprint.pprint(vacancy_counter)
+            count = api.count_vacancies(request_json)
+            formatted_result = f"Найдено всего вакансий = {count}"
 
-        case '2':
-            print('производим подсчет процента требований относительно к вакансиям')
-            parameters = api.initialize_base_parameters()
+        elif run_type == 'percentage':
             request_json = api.request_get_json(parameters)
-            vacancy_counter = api.count_vacancies(request_json)
+            count_vacancies = api.count_vacancies(request_json)
             requirements = api.get_requirements(request_json)
             counter_total = api.count_requirements(requirements)
-            percentages_total = api.count_requirements_percent(counter_total)
-            pprint.pprint(percentages_total)
-            print('сохранить результат в виде JSON файла?')
-            print('1. да')
-            print('2. нет')
-            sub_choice = input('ваш выбор: ')
-            match sub_choice:
-                case '1':
-                    myFileManager.generateJsonPercent('percent_data', [parameters, percentages_total, vacancy_counter])
-                    continue
-                case '2':
-                    continue
-                case _:
-                    print('выбран неверный пункт, возвращаемся в главное меню')
-                    continue
+            result_dict = api.count_requirements_percent(counter_total)
+            formatted_result = format_dict_to_html(result_dict, "Проценты требований")
 
-        case '3':
-            print('производим подсчет упоминаний требований...')
-            parameters = api.initialize_base_parameters()
+        elif run_type == 'mentions':
             request_json = api.request_get_json(parameters)
-            vacancy_counter = api.count_vacancies(request_json)
+            count_vacancies = api.count_vacancies(request_json)
             requirements = api.get_requirements(request_json)
-            counter_total = api.count_requirements(requirements)
-            pprint.pprint(counter_total)
-            print('сохранить результат в виде JSON файла?')
-            print('1. да')
-            print('2. нет')
-            sub_choice = input('ваш выбор: ')
-            match sub_choice:
-                case '1':
-                    myFileManager.generateJsonCount('counter_data', [parameters, counter_total, vacancy_counter])
-                    continue
-                case '2':
-                    continue
-                case _:
-                    print('выбран неверный пункт, возвращаемся в главное меню')
-                    continue
+            result_dict = api.count_requirements(requirements)
+            formatted_result = format_dict_to_html(result_dict, "Количество упоминаний")
 
-        case '4':
-            current_parameters = api.initialize_base_parameters()
-            pprint.pprint(current_parameters)
+        else:
+            formatted_result = None
 
-        case '5':
-            print('Введите параметры в формате JSON, на пример {"text": "QA developer"}')
-            custom_parameters = input('JSON: ')
-            try:
-                params_dict = json.loads(custom_parameters)
-                new_parameters = api.update_parameters(**params_dict)
-                print('Обновленные параметры: \n')
-                pprint.pprint(new_parameters)
-            except Exception as e:
-                print(f"Ошибка: {e}")
+        # Передаем ВСЕ данные обратно в шаблон
+        return render_template('hh_api.html',
+                               result=formatted_result,
+                               vacancy_text=vacancy_name,
+                               page_number=page_number,
+                               region=region,
+                               export_type=run_type)
 
-        case '6':
-            print('выход из системы')
-            break
-        case _:
-            print('выберите верный пункт')
+
+def format_dict_to_html(data_dict, title):
+    if not data_dict:
+        return f"<h4>{title}</h4><p>Нет данных</p>"
+
+    html = f"""
+    <h4>{title}</h4>
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Требование</th>
+                <th>Значение</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+
+    for key, value in data_dict.items():
+        # Format numbers with commas for thousands
+        if isinstance(value, (int, float)):
+            formatted_value = f"{value:,}".replace(',', ' ')
+        else:
+            formatted_value = str(value)
+
+        html += f"""
+            <tr>
+                <td><strong>{key}</strong></td>
+                <td>{formatted_value}</td>
+            </tr>
+        """
+
+    html += """
+        </tbody>
+    </table>
+    """
+    return html
+
+if __name__ == '__main__':
+    app.run(debug=True)
