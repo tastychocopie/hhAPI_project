@@ -1,5 +1,20 @@
 from flask import Flask, render_template, send_from_directory, request
 from hh import hhAPI
+from datetime import datetime
+import sqlite3
+
+def log_to_db(export_id, **data):
+    db = sqlite3.connect("hhDb.sqlite")
+    executor = db.cursor()
+
+    vacancy = data['text']
+    page_number = data['page']
+    region = data['area']
+    export_type = export_id
+    query = 'insert into data_log (vacancy, page_number, region_id, export_type, log_time)' \
+    f" values ('{vacancy}', {page_number}, {region}, {export_type}, DATETIME('now', '+3 hours'))"
+    executor.execute(query)
+    db.commit()
 
 app = Flask(__name__)
 api = hhAPI()
@@ -37,6 +52,7 @@ def use_api():
             request_json = api.request_get_json(parameters)
             count = api.count_vacancies(request_json)
             formatted_result = f"Найдено всего вакансий = {count}"
+            log_to_db(1, **parameters)
 
         elif run_type == 'percentage':
             request_json = api.request_get_json(parameters)
@@ -45,6 +61,7 @@ def use_api():
             counter_total = api.count_requirements(requirements)
             result_dict = api.count_requirements_percent(counter_total)
             formatted_result = format_dict_to_html(result_dict, "Проценты требований")
+            log_to_db(2, **parameters)
 
         elif run_type == 'mentions':
             request_json = api.request_get_json(parameters)
@@ -52,6 +69,7 @@ def use_api():
             requirements = api.get_requirements(request_json)
             result_dict = api.count_requirements(requirements)
             formatted_result = format_dict_to_html(result_dict, "Количество упоминаний")
+            log_to_db(3, **parameters)
 
         else:
             formatted_result = None
