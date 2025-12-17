@@ -51,6 +51,7 @@ def use_api():
         if run_type == 'vacancy_count':
             request_json = api.request_get_json(parameters)
             count = api.count_vacancies(request_json)
+            details = api.get_details(request_json)
             formatted_result = f"Найдено всего вакансий = {count}"
             log_to_db(1, **parameters)
 
@@ -58,6 +59,7 @@ def use_api():
             request_json = api.request_get_json(parameters)
             count_vacancies = api.count_vacancies(request_json)
             requirements = api.get_requirements(request_json)
+            details = api.get_details(request_json)
             counter_total = api.count_requirements(requirements)
             result_dict = api.count_requirements_percent(counter_total)
             formatted_result = format_dict_to_html(result_dict, "Проценты требований")
@@ -67,6 +69,7 @@ def use_api():
             request_json = api.request_get_json(parameters)
             count_vacancies = api.count_vacancies(request_json)
             requirements = api.get_requirements(request_json)
+            details = api.get_details(request_json)
             result_dict = api.count_requirements(requirements)
             formatted_result = format_dict_to_html(result_dict, "Количество упоминаний")
             log_to_db(3, **parameters)
@@ -80,7 +83,9 @@ def use_api():
                                vacancy_text=vacancy_name,
                                page_number=page_number,
                                region=region,
-                               export_type=run_type)
+                               export_type=run_type,
+                               details=details
+                               )
 
 
 def format_dict_to_html(data_dict, title):

@@ -1,8 +1,12 @@
 # импорт необходимых библиотек, pprint для красивого вывода, а requests для работы с REST API
 import requests
-
+from datetime import datetime
 
 class hhAPI:
+
+    """
+    Базовые свойства
+    """
 
     # основной домейн, выбран hh
     BASE_URL = 'https://api.hh.ru/' # хард-кодим hh api, чтобы только он использовался
@@ -20,6 +24,10 @@ class hhAPI:
     }
 
     PARAMETERS_CACHE = None
+
+    """
+    Базовые методы класса
+    """
 
     def initialize_base_parameters(self):
         if self.PARAMETERS_CACHE is None:
@@ -43,11 +51,42 @@ class hhAPI:
         result = requests.get(self.VACANCIES_URL, parameters).json()
         return result
 
+    """
+    Методы для подсчетов + методы получения вакансий детально:
+    published_at - дата размещения вакансии
+    item['employer'].name - организация
+    name - название вакансии
+    """
+
+    # метод получения деталей
+    def get_details(self, result):
+        details_list =[]
+        vacancies = result['items']
+        for vacancy in vacancies:
+            details = {}
+            published_date = vacancy['published_at']
+            # форматируем дату
+            try:
+                dt = datetime.strptime(published_date, '%Y-%m-%dT%H:%M:%S%z')
+                details['published_at'] = dt.strftime('%d.%m.%Y %H:%M')
+            except:
+                details['published_at'] = published_date
+
+            organization = vacancy['employer']['name']
+            details['employer'] = organization
+            vacancy_name = vacancy['name']
+            details['name'] = vacancy_name
+            details_list.append(details)
+
+        print(details_list)
+        return details_list
+
     def count_vacancies(self, result):
         vacancies = result['items']
         vacancies_total = len(vacancies)
         return vacancies_total
 
+    # для count_requirements
     def get_requirements(self, result):
         # получение вакансий в целом
         vacancies = result['items']
@@ -60,7 +99,7 @@ class hhAPI:
             get_requirements = snippet['requirement']
             requirements.append(get_requirements)
 
-        return requirements;
+        return requirements
 
     def count_requirements(self, requirements):
         # будем искать по требованию, т.е. python, django, flask, sqlalchemy
