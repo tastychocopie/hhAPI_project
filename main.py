@@ -4,7 +4,7 @@ from datetime import datetime
 import sqlite3
 
 def log_to_db(export_id, **data):
-    db = sqlite3.connect("hhDb.sqlite")
+    db = sqlite3.connect("ormHH.sqlite")
     executor = db.cursor()
 
     vacancy = data['text']

@@ -78,7 +78,6 @@ class hhAPI:
             details['name'] = vacancy_name
             details_list.append(details)
 
-        print(details_list)
         return details_list
 
     def count_vacancies(self, result):
